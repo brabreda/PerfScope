@@ -1,0 +1,11 @@
+{
+  "files.associations": {
+    "array": "cpp",
+    "string_view": "cpp",
+    "initializer_list": "cpp",
+    "ranges": "cpp",
+    "span": "cpp",
+    "compare": "cpp",
+    "cstdint": "cpp"
+  }
+}
