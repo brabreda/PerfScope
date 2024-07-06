@@ -1,6 +1,3 @@
-#include <vector>
-#include <iostream>
-#include <fstream>
 #include "PerfInline.h"
 
 int main() {
@@ -16,7 +13,6 @@ int main() {
       x+=i;
     }
   }
-  std::cout <<"calc:  "<< x << std::endl;
   
   return 0;
 }
