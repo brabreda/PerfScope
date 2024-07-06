@@ -3,9 +3,6 @@
 #include <fstream>
 #include "PerfInline.h"
 
-#include <linux/perf_event.h>
-
-
 int main() {
   volatile uint64_t x = 0;
   {
