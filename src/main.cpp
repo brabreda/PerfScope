@@ -3,27 +3,23 @@
 #include <fstream>
 #include "PerfInline.h"
 
-#define EV_BRANCH_MISS     (0xC5 | (0x1 << 8))
-#define EV_BRANCH          (0xC4 | (0x1 << 8))
-#define EV_CYCLES          (0x3C | (0x0 << 8))
-#define EV_INSTR           (0xC0 | (0x0 << 8))
+#include <linux/perf_event.h>
 
 
 int main() {
   volatile uint64_t x = 0;
   {
-    PerfInline perf = {
-      EV_INSTR,
-      EV_CYCLES,
-      EV_BRANCH,
-      EV_BRANCH_MISS
-    };
+    auto tmp = PerfInline<
+      PERF_COUNT_HW_CACHE_REFERENCES,
+      PERF_COUNT_HW_CACHE_MISSES,
+      PERF_COUNT_HW_BRANCH_INSTRUCTIONS,
+      PERF_COUNT_HW_BRANCH_MISSES>();
 
-    for(int i = 0; i < 100; i++){
+    for(int i = 0; i < 100000; i++){
       x+=i;
     }
   }
-  std::cout << x << std::endl;
-
+  std::cout <<"calc:  "<< x << std::endl;
+  
   return 0;
 }
