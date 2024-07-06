@@ -1,5 +1,6 @@
 # PerfInline
 Harness the power of performance counters, akin to tools like perf, but scoped within your C++ applications. This project provides a seamless way to measure and analyze performance metrics within defined scopes.
+- Only limited to the [`perf_hw_id`](https://sites.uclouvain.be/SystInfo/usr/include/linux/perf_event.h.html) Generalized performance event (More coming soon).
 
 ## Example
 ```cpp
