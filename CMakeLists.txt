@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
-project(PerfInline LANGUAGES CXX)
-set(PROJECT_NAME PerfInline)
+project(PerfScope LANGUAGES CXX)
+set(PROJECT_NAME PerfScope)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

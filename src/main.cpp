@@ -1,13 +1,21 @@
-#include "PerfInline.h"
+#include <iostream>
+
+#include "PerfScope.h"
 
 int main() {
   volatile uint64_t x = 0;
-  {
-    auto tmp = PerfInline<
-      PERF_COUNT_HW_CACHE_REFERENCES,
-      PERF_COUNT_HW_CACHE_MISSES,
-      PERF_COUNT_HW_BRANCH_INSTRUCTIONS,
-      PERF_COUNT_HW_BRANCH_MISSES>();
+  { 
+
+    using PerfScope::HwEvent;
+
+    auto PrintPerfData = [](auto& PerfData){
+      std::cout << (PerfData.template GetEventResult<HwEvent<PERF_COUNT_HW_CACHE_REFERENCES>>()) << "\n";
+      std::cout << (PerfData.template GetEventResult<HwEvent<PERF_COUNT_HW_CACHE_MISSES>>()) << "\n";
+    };
+    auto tmp = PerfScope::PerfScope<
+        HwEvent<PERF_COUNT_HW_CACHE_REFERENCES>,
+        HwEvent<PERF_COUNT_HW_CACHE_MISSES>
+      >(PrintPerfData);
 
     for(int i = 0; i < 100000; i++){
       x+=i;
