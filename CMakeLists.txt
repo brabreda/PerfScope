@@ -10,5 +10,9 @@ file(GLOB_RECURSE SOURCES src/*.cpp src/*.h)
 # Add the executable target
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBCAP REQUIRED libcap)
+
 # If you need to link any libraries, you can specify them here
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(${PROJECT_NAME} ${LIBCAP_LIBRARIES})

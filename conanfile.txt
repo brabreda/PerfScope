@@ -1,5 +1,6 @@
 [requires]
 libpfm4/4.13.0
+libcap/2.69
 
 [tool_requires]
 cmake/3.22.6

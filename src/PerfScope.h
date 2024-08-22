@@ -15,81 +15,76 @@
 
 
 // Perfscope internal implementation
-namespace PerfScope {
-  namespace Details {
+namespace PerfScope::Details {
 
-    const int OpenPerfEvent(perf_event_attr &PerfEventAttr);
-    uint64_t ClosePerfEvent(const int FileDescriptor);
+  template <perf_type_id EventId>
+  class EventBase {};
 
-    template <perf_type_id EventId>
-    class EventBase {
-    };
+  template <class E>
+  concept PerformanceCounter =    
+    std::is_base_of_v<EventBase<PERF_TYPE_HARDWARE>, E> ||
+    std::is_base_of_v<EventBase<PERF_TYPE_HW_CACHE>, E> ||
+    std::is_base_of_v<EventBase<PERF_TYPE_SOFTWARE>, E> ||
+    std::is_base_of_v<EventBase<PERF_TYPE_RAW>, E>;
 
-    template <class E>
-    concept PerformanceCounter =    
-      std::is_base_of_v<EventBase<PERF_TYPE_HARDWARE>, E> ||
-      std::is_base_of_v<EventBase<PERF_TYPE_HW_CACHE>, E> ||
-      std::is_base_of_v<EventBase<PERF_TYPE_SOFTWARE>, E> ||
-      std::is_base_of_v<EventBase<PERF_TYPE_RAW>, E>;
+  template<PerformanceCounter T, PerformanceCounter U>
+  struct is_same : std::false_type {};
 
-    template<PerformanceCounter T, PerformanceCounter U>
-    struct is_same : std::false_type {};
+  template<PerformanceCounter T>
+  struct is_same<T, T> : std::true_type {};
 
-    template<PerformanceCounter T>
-    struct is_same<T, T> : std::true_type {};
+  template <PerformanceCounter... Types>
+  class PerfScopeVisitor;
 
-    template <PerformanceCounter... Types>
-    class PerfScopeVisitor;
+  template <PerformanceCounter T>
+  class PerfScopeVisitor<T> {
+    public:
+      void OpenPerfEvent() { 
+        _PmuFileDescriptors = PerfScope::Details::OpenPerfEvent(_EventAttr); 
+      };
+      void ClosePerfEvent() { 
+        _PmuEventValue = PerfScope::Details::ClosePerfEvent(_PmuFileDescriptors);
+      };
+      template<PerformanceCounter T1>
+      uint64_t GetEventResult() {
+        static_assert(is_same<T,T1>::value, "PerfScope is not correctly initialized; missing event.");
+        return _PmuEventValue;
+      };
+      uint64_t GetEventResult() {
+        return _PmuEventValue;
+      };
 
-    template <PerformanceCounter T>
-    class PerfScopeVisitor<T> {
-      public:
-        void OpenPerfEvent() { 
-          _PmuFileDescriptors = PerfScope::Details::OpenPerfEvent(_EventAttr); 
-        };
-        void ClosePerfEvent() { 
-          _PmuEventValue = PerfScope::Details::ClosePerfEvent(_PmuFileDescriptors);
-        };
-        template<PerformanceCounter T1>
-        uint64_t GetEventResult() {
-          static_assert(is_same<T,T1>::value, "PerfScope is not correctly initialized; missing event.");
-          return _PmuEventValue;
-        };
-        uint64_t GetEventResult() {
-          return _PmuEventValue;
-        };
-
-      private:
-        int _PmuFileDescriptors = -1;
-        uint64_t _PmuEventValue = 0;
-        perf_event_attr _EventAttr = T::CreatePerfAttribute();
-    };
-
-    template <PerformanceCounter T1, PerformanceCounter... Types>
-    class PerfScopeVisitor<T1, Types...> : private PerfScopeVisitor<T1>, private PerfScopeVisitor<Types...>{
-      public:
-        void OpenPerfEvent(){ 
-          PerfScopeVisitor<T1>::OpenPerfEvent(); 
-          PerfScopeVisitor<Types...>::OpenPerfEvent(); 
-        };
-        void ClosePerfEvent(){
-          PerfScopeVisitor<T1>::ClosePerfEvent(); 
-          PerfScopeVisitor<Types...>::ClosePerfEvent(); 
-        };
-        template<PerformanceCounter T>
-        uint64_t GetEventResult() {
-          if constexpr(is_same<T1,T>::value){
-              return PerfScopeVisitor<T1>::GetEventResult();
-          } else{
-              return PerfScopeVisitor<Types...>::template GetEventResult<T>();
-          }
-        }
-    }; 
+    private:
+      int _PmuFileDescriptors = -1;
+      uint64_t _PmuEventValue = 0;
+      perf_event_attr _EventAttr = T::CreatePerfAttribute();
   };
 
+  template <PerformanceCounter T1, PerformanceCounter... Types>
+  class PerfScopeVisitor<T1, Types...> : private PerfScopeVisitor<T1>, private PerfScopeVisitor<Types...>
+  {
+    public:
+      void OpenPerfEvent(){ 
+        PerfScopeVisitor<T1>::OpenPerfEvent(); 
+        PerfScopeVisitor<Types...>::OpenPerfEvent(); 
+      };
+      void ClosePerfEvent(){
+        PerfScopeVisitor<T1>::ClosePerfEvent(); 
+        PerfScopeVisitor<Types...>::ClosePerfEvent(); 
+      };
+      template<PerformanceCounter T>
+      uint64_t GetEventResult() {
+        if constexpr(is_same<T1,T>::value){
+            return PerfScopeVisitor<T1>::GetEventResult();
+        } else{
+            return PerfScopeVisitor<Types...>::template GetEventResult<T>();
+        }
+      }
+  }; 
+};
+
+namespace PerfScope {
   using namespace Details;
-
-
 
   // Different kind of event that can be catured with PerfScope
   template <perf_hw_id HwEventId>
@@ -103,6 +98,7 @@ namespace PerfScope {
       PerfEvent.pinned = 1;
       PerfEvent.inherit = 1;
       PerfEvent.config = HwEventId;
+      PerfEvent.read_format = PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
       return PerfEvent;
     }
   };
@@ -152,11 +148,9 @@ namespace PerfScope {
       uint64_t GetEventResult() { 
           return PerfScopeVisitor<Types...>::template GetEventResult<T>();
       };
-      private:
-        std::function<void(PerfScope<Types...>&)> _DataHandler; 
+    private:
+      std::function<void(PerfScope<Types...>&)> _DataHandler; 
   };
-
-
 };
 
 #endif // PerfScope_H
